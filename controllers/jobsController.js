@@ -87,7 +87,7 @@ const updateJob = async (req, res) => {
 const deleteJob = async (req, res) => {
   const { id: jobId } = req.params;
 
-  const job = await Job.findOne({ _id: jobId });
+  const job = await Job.findOneAndDelete({ _id: jobId });
 
   if (!job) {
     throw new NotFoundError(`No job with id :${jobId}`);
@@ -95,10 +95,9 @@ const deleteJob = async (req, res) => {
 
   checkPermissions(req.user, job.createdBy);
 
-  await job.remove();
-
   res.status(StatusCodes.OK).json({ msg: "Success! Job removed" });
 };
+
 const showStats = async (req, res) => {
   let stats = await Job.aggregate([
     { $match: { createdBy: new mongoose.Types.ObjectId(req.user.userId) } },
@@ -128,18 +127,20 @@ const showStats = async (req, res) => {
     { $limit: 6 },
   ]);
   monthlyApplications = monthlyApplications
-    .map((item) => {
-      const {
-        _id: { year, month },
-        count,
-      } = item;
-      const date = moment()
-        .month(month - 1)
-        .year(year)
-        .format("MMM Y");
-      return { date, count };
-    })
-    .reverse();
+  .map((item) => {
+    const {
+      _id: { year, month },
+      count,
+    } = item;
+    const date = moment()
+      .month(month - 1)
+      .year(year)
+      .format('MMM Y');
+    return { date, count };
+  })
+  .reverse();
+
+  console.log(defaultStats, monthlyApplications);
 
   res.status(StatusCodes.OK).json({ defaultStats, monthlyApplications });
 };
